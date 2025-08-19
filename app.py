@@ -1,24 +1,21 @@
-from flask import Flask, jsonify
-import os
-import requests
+import logging
 
-app = Flask(__name__)
+from flask import Flask
 
-@app.route('/')
-def hello():
-    return "Hello S3M Action Provider!"
+import config 
+from blueprint import aptb
+from globus_action_provider_tools.flask.helpers import assign_json_provider
 
-@app.route('/status')
-def status():
-    try:
-        response = requests.get("https://s3m.apps.olivine.ccs.ornl.gov/olcf/v1alpha/status", timeout=5)
-        response.raise_for_status()
-        return jsonify(response.json())
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": str(e)}), 502
 
-if __name__ == '__main__':
-    port = os.environ.get('FLASK_PORT') or 8080
-    port = int(port)
+def create_app():
+    app = Flask(__name__)
+    assign_json_provider(app)
+    app.logger.setLevel(logging.DEBUG)
+    app.config.from_object(config)
+    app.register_blueprint(aptb)
+    return app
 
-    app.run(port=port, host='0.0.0.0')
+
+if __name__ == "__main__":
+    app = create_app()
+    app.run(debug=True, ssl_context=('server.crt', 'server.key'))
